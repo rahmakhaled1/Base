@@ -33,12 +33,20 @@ class NotificationService
     }
 
     // جلب الإشعارات الخاصة بالمستخدم فقط
-    public function getNotifications(int $userId, int $limit = 20)
-    {  
+    public function getNotifications(int $userId, int $perPage = 20)
+    {
         return Notification::where('user_id', $userId)
-                           ->latest()
-                           ->take($limit)
-                           ->get();
+            ->latest()
+            ->paginate($perPage)
+            ->through(function ($notification) {
+                return [
+                    'id'        => $notification->id,
+                    'title'     => $notification->title,
+                    'body'      => $notification->body,
+                    'is_read'   => $notification->is_read,
+                    'created_at' => $notification->created_at->format('Y-m-d H:i'), 
+                ];
+            });
     }
 
     // جلب عدد الإشعارات غير المقروءة الخاصة بالمستخدم فقط
@@ -63,4 +71,22 @@ class NotificationService
 
         return false;
     }
+    public function deleteNotification(int $notificationId, int $userId): bool
+    {
+        $notification = Notification::where('id', $notificationId)
+                                    ->where('user_id', $userId)
+                                    ->first();
+
+        if ($notification) {
+            $notification->delete();
+            return true;
+        }
+        return false;
+    }
+
+    public function deleteAllNotifications(int $userId): int
+    {
+        return Notification::where('user_id', $userId)->delete();
+    }
+
 }
